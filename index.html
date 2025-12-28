@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Corrupted Buffer</title>
+    <style>
+        /* Reset di base per togliere i margini bianchi del browser */
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000;
+            /* Nero assoluto per il tema */
+            overflow: hidden;
+            /* Nasconde le scrollbar */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        /* Il nostro schermo di gioco */
+        canvas {
+            border: 1px solid #333;
+            /* Un bordo sottile per vedere dove finisce il gioco */
+            image-rendering: pixelated;
+            /* Fondamentale: mantiene i pixel nitidi senza sfocarli */
+        }
+    </style>
+</head>
+
+<body>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <script src="game.js"></script>
+
+</body>
+
+</html>
