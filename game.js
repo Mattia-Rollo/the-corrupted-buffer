@@ -64,6 +64,57 @@ window.addEventListener('keyup', (e) => {
     }
 });
 
+// --- AUDIO SYSTEM (The Synthesizer) ---
+// Creiamo il contesto audio (il nostro "mixer" virtuale)
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playSound(type) {
+    if (!audioCtx) return; // Sicurezza
+
+    // 1. Creiamo un oscillatore (il generatore di onde)
+    const osc = audioCtx.createOscillator();
+    // 2. Creiamo un controllo volume (Gain)
+    const gainNode = audioCtx.createGain();
+
+    // Colleghiamo: Oscillatore -> Volume -> Casse
+    osc.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+
+    const now = audioCtx.currentTime;
+
+    // Configurazione suoni in base al tipo
+    if (type === 'shoot') {
+        // Suono acuto e breve (Laser)
+        osc.type = 'square'; // Suono "retro" a 8-bit
+        osc.frequency.setValueAtTime(550, now);
+        osc.frequency.exponentialRampToValueAtTime(100, now + 0.1); // Pitch down
+        gainNode.gain.setValueAtTime(0.1, now);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+        osc.start(now);
+        osc.stop(now + 0.1);
+    }
+    else if (type === 'hit') {
+        // Suono basso e "sporco" (Esplosione/Errore)
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(150, now);
+        osc.frequency.exponentialRampToValueAtTime(0.10, now + 0.5);
+        gainNode.gain.setValueAtTime(0.8, now);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+        osc.start(now);
+        osc.stop(now + 0.5);
+    }
+    else if (type === 'collect') {
+        // Suono squillante e felice (Moneta/Powerup)
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(600, now);
+        osc.frequency.linearRampToValueAtTime(1200, now + 0.1); // Pitch up
+        gainNode.gain.setValueAtTime(0.1, now);
+        gainNode.gain.linearRampToValueAtTime(0.01, now + 0.1);
+        osc.start(now);
+        osc.stop(now + 0.1);
+    }
+}
+
 // --- CORE FUNCTIONS ---
 
 function update() {
@@ -124,6 +175,7 @@ function update() {
             goal.y = Math.random() * (canvas.height - 10);
         } else {
             // HAI TOCCATO IL GOAL PURO -> VITTORIA!
+            playSound('collect');
             score += 64;
             console.log("Data recovered! Score:", score);
 
@@ -145,9 +197,23 @@ function update() {
     }
 
     if (keys.Space) {
-        triggerDebug();
+        triggerDebugPower();
         keys.Space = false; // Resetta subito per non spararne 100 al secondo
     }
+
+    // console.log("GLITCHES: ", glitches.length);
+    if (glitches.length > 1000) resetGame();
+}
+
+function resetGame() {
+    score = 0;
+    player.x = canvas.width / 2;
+    player.y = canvas.height / 2;
+    glitches = [];
+    spawnGlitches(10);
+    goal.x = Math.random() * (canvas.width - 10);
+    goal.y = Math.random() * (canvas.height - 10);
+    goal.isCorrupted = true;
 }
 
 function draw() {
@@ -155,12 +221,13 @@ function draw() {
     // Instead of clearing the screen completely (clearRect),
     // we draw a semi-transparent black rectangle.
     // This creates the "trail" effect because old frames fade out slowly.
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // 2. Draw Player
     ctx.fillStyle = player.color;
     ctx.fillRect(player.x, player.y, player.size, player.size);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.0)';
 
     // 3. Draw Glitches
     // drawBackground();
@@ -183,6 +250,7 @@ function draw() {
         const glitchColors = ['#ff0000', '#00ff00', '#0000ff'];
         ctx.fillStyle = glitchColors[Math.floor(Math.random() * glitchColors.length)];
         ctx.fillRect(goal.x + shakeX, goal.y + shakeY, goal.size, goal.size);
+        // Add rotation to the goal
     } else {
         // DISEGNO PURO (Stabile e Ciano)
         ctx.fillStyle = goal.color; // #00ffff
@@ -207,7 +275,7 @@ function draw() {
         ctx.stroke();
 
         // Espandi il cerchio
-        pulseEffect.radius += 10; // Velocità espansione
+        pulseEffect.radius += 2; // Velocità espansione
 
         // Se diventa troppo grande, spegnilo
         if (pulseEffect.radius > 100) { // 100 deve essere uguale al range del filtro
@@ -232,12 +300,14 @@ function spawnGlitches(amount) {
     }
 }
 
-function triggerDebug() {
+function triggerDebugPower() {
     const now = Date.now();
-    if (now - lastDebugTime < 1000) return;
+    if (now - lastDebugTime < 300) return;
 
     lastDebugTime = now;
     console.log("DEBUG PULSE ACTIVATED!");
+
+    playSound('shoot');
 
     // Attiviamo l'animazione
     pulseEffect.active = true;
@@ -298,6 +368,7 @@ function checkCollisions() {
             player.y < glitch.y + glitch.size &&
             player.y + player.size > glitch.y
         ) {
+            playSound('hit');
             console.log("SYSTEM FAILURE. REBOOTING...");
             score = 0; // Azzera punteggio (o togli punti)
             player.x = canvas.width / 2;
