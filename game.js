@@ -77,7 +77,7 @@ window.addEventListener('keydown', (e) => {
         }
         else if (gameState === 'GAMEOVER') {
             // Dal Game Over -> Ricomincia
-            gameState = 'START';
+            resetGame();
             playSound('collect');
             initGame();
         }
@@ -146,7 +146,7 @@ function playSound(type) {
 
 function update() {
 
-    console.log("gameState: ", gameState);
+    // console.log("gameState: ", gameState);
     // console.log("glitches: ", glitches.length);
     if (gameState !== 'PLAYING') return;
     // Move Player based on Input
@@ -234,7 +234,12 @@ function update() {
     }
 
     // console.log("GLITCHES: ", glitches.length);
-    if (glitches.length > 50) resetGame();
+    if (glitches.length > 50) gameOver();
+}
+
+function gameOver() {
+    console.log("GAMEOVER");
+    gameState = 'GAMEOVER';
 }
 
 function resetGame() {
@@ -247,7 +252,7 @@ function resetGame() {
     goal.x = Math.random() * (canvas.width - 10);
     goal.y = Math.random() * (canvas.height - 10);
     goal.isCorrupted = true;
-    gameState = 'GAMEOVER';
+    gameState = 'START';
 }
 
 function draw() {
@@ -418,7 +423,7 @@ function checkCollisions() {
         ) {
             playSound('hit');
             console.log("SYSTEM FAILURE. REBOOTING...");
-            score = 0; // Azzera punteggio (o togli punti)
+            // score = 0; // Azzera punteggio (o togli punti)
             player.x = canvas.width / 2;
             player.y = canvas.height / 2;
             glitches = []; // Pulisci lo schermo per dare tregua al giocatore
