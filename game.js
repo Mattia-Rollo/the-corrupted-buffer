@@ -200,8 +200,9 @@ function update() {
             player.x = canvas.width / 2;
             player.y = canvas.height / 2;
             glitches = [];
-            gameState = 'PLAYING';
-            spawnGlitches(10);
+            playSound('hit');
+            gameState = 'GAMEOVER';
+            spawnGlitches(50);
             // Resettiamo il goal altrove
             goal.x = Math.random() * (canvas.width - 10);
             goal.y = Math.random() * (canvas.height - 10);
@@ -422,7 +423,8 @@ function checkCollisions() {
             player.y + player.size > glitch.y
         ) {
             playSound('hit');
-            console.log("SYSTEM FAILURE. REBOOTING...");
+            console.log("SYSTEM FAILURE.");
+            gameState = 'GAMEOVER';
             // score = 0; // Azzera punteggio (o togli punti)
             player.x = canvas.width / 2;
             player.y = canvas.height / 2;
@@ -431,7 +433,6 @@ function checkCollisions() {
             spawnGlitches(ammountOfGlitches); // Ricrea un set base
 
             // Opzionale: Cambia colore per un attimo per feedback visivo
-            // (Lo faremo meglio domani, per ora il reset basta)
             goal.color = '#ff0000';
             setTimeout(() => {
                 goal.color = '#00ffff';
