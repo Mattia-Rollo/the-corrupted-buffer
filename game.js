@@ -9,6 +9,10 @@ canvas.width = 640;
 canvas.height = 480;
 
 // --- GAME STATE ---
+// Possibili valori: 'START', 'PLAYING', 'GAMEOVER'
+let gameState = 'START';
+
+// --- PLAYER ---   
 const player = {
     x: canvas.width / 2,
     y: canvas.height / 2,
@@ -16,9 +20,12 @@ const player = {
     speed: 2,
     color: '#00ff00' // Hacker Green
 };
+
+// --- GLITCHES ---
 let glitches = [];
 let ammountOfGlitches = 10;
 
+// --- INPUT ---
 // Input State (Keys pressed)
 const keys = {
     ArrowUp: false,
@@ -52,8 +59,27 @@ const goal = {
 // --- INPUT HANDLERS ---
 // Listen for keydown (press)
 window.addEventListener('keydown', (e) => {
-    if (keys.hasOwnProperty(e.code) || e.code === 'Space') {
-        keys[e.code] = true;
+    // Gestione tasti di movimento (solo se stiamo giocando)
+    if (gameState === 'PLAYING') {
+        if (keys.hasOwnProperty(e.code) || e.code === 'Space') {
+            keys[e.code] = true;
+        }
+    }
+
+    // GESTIONE STATI (Nuova parte)
+    if (e.code === 'Enter') {
+        if (gameState === 'START') {
+            // Dal menu -> Inizia gioco
+            gameState = 'PLAYING';
+            playSound('collect'); // Suono di conferma
+            initGame(); // (Creeremo questa funzione tra poco)
+        }
+        else if (gameState === 'GAMEOVER') {
+            // Dal Game Over -> Ricomincia
+            gameState = 'PLAYING';
+            playSound('collect');
+            initGame();
+        }
     }
 });
 
@@ -95,13 +121,13 @@ function playSound(type) {
     }
     else if (type === 'hit') {
         // Suono basso e "sporco" (Esplosione/Errore)
-        osc.type = 'triangle';
+        osc.type = 'sawtooth';
         osc.frequency.setValueAtTime(150, now);
-        osc.frequency.exponentialRampToValueAtTime(0.10, now + 0.5);
-        gainNode.gain.setValueAtTime(0.8, now);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+        osc.frequency.exponentialRampToValueAtTime(0.10, now + 0.1);
+        gainNode.gain.setValueAtTime(0.2, now);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
         osc.start(now);
-        osc.stop(now + 0.5);
+        osc.stop(now + 0.1);
     }
     else if (type === 'collect') {
         // Suono squillante e felice (Moneta/Powerup)
@@ -118,6 +144,8 @@ function playSound(type) {
 // --- CORE FUNCTIONS ---
 
 function update() {
+
+    if (gameState !== 'PLAYING') return;
     // Move Player based on Input
     if (keys.ArrowUp) player.y -= player.speed;
     if (keys.ArrowDown) player.y += player.speed;
@@ -229,59 +257,71 @@ function draw() {
     ctx.fillRect(player.x, player.y, player.size, player.size);
     ctx.fillStyle = 'rgba(0, 0, 0, 0.0)';
 
-    // 3. Draw Glitches
-    // drawBackground();
-    glitches.forEach(glitch => {
-        // Effetto tremolio: disegniamo il glitch leggermente spostato a caso
-        // per farlo sembrare instabile, ma la sua "vera" posizione resta fissa
-        const shakeX = (Math.random() - 0.5) * 4;
-        const shakeY = (Math.random() - 0.5) * 4;
-
-        ctx.fillStyle = glitch.colors[Math.floor(Math.random() * glitch.colors.length)];
-        ctx.fillRect(glitch.x + shakeX, glitch.y + shakeY, glitch.size, glitch.size);
-    });
-
-    // 4. Draw Goal
-    if (goal.isCorrupted) {
-        // DISEGNO CORROTTO (Come un glitch nemico)
-        const shakeX = (Math.random() - 0.5) * 4;
-        const shakeY = (Math.random() - 0.5) * 4;
-        // Usiamo colori da glitch per camuffarlo
-        const glitchColors = ['#ff0000', '#00ff00', '#0000ff'];
-        ctx.fillStyle = glitchColors[Math.floor(Math.random() * glitchColors.length)];
-        ctx.fillRect(goal.x + shakeX, goal.y + shakeY, goal.size, goal.size);
-        // Add rotation to the goal
-    } else {
-        // DISEGNO PURO (Stabile e Ciano)
-        ctx.fillStyle = goal.color; // #00ffff
-        // Magari aggiungiamo un bordo bianco per far capire che è pronto
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(goal.x, goal.y, goal.size, goal.size);
-        ctx.fillRect(goal.x, goal.y, goal.size, goal.size);
+    // 2. LOGICA STATI
+    if (gameState === 'START') {
+        drawStartScreen();
     }
+    else if (gameState === 'PLAYING') {
+        // Disegna Player, Goal, HUD, Pulse
+        // 3. Draw Glitches
+        // drawBackground();
+        glitches.forEach(glitch => {
+            // Effetto tremolio: disegniamo il glitch leggermente spostato a caso
+            // per farlo sembrare instabile, ma la sua "vera" posizione resta fissa
+            const shakeX = (Math.random() - 0.5) * 4;
+            const shakeY = (Math.random() - 0.5) * 4;
 
-    // 5. Draw HUD (Heads-up Display) - Il Punteggio
-    ctx.fillStyle = '#fff';
-    ctx.font = '16px "Courier New", monospace'; // Font stile terminale
-    ctx.fillText('RAM RECOVERED: ' + score + 'kb', 5, 15); // Scrive in alto a sinistra
+            ctx.fillStyle = glitch.colors[Math.floor(Math.random() * glitch.colors.length)];
+            ctx.fillRect(glitch.x + shakeX, glitch.y + shakeY, glitch.size, glitch.size);
+        });
 
-    // 6. Draw Pulse Effect (L'onda d'urto)
-    if (pulseEffect.active) {
-        ctx.beginPath();
-        ctx.arc(pulseEffect.x, pulseEffect.y, pulseEffect.radius, 0, Math.PI * 2);
-        ctx.strokeStyle = '#ffffff'; // Colore bianco
-        ctx.lineWidth = 3;
-        ctx.stroke();
+        // 4. Draw Goal
+        if (goal.isCorrupted) {
+            // DISEGNO CORROTTO (Come un glitch nemico)
+            const shakeX = (Math.random() - 0.5) * 4;
+            const shakeY = (Math.random() - 0.5) * 4;
+            // Usiamo colori da glitch per camuffarlo
+            const glitchColors = ['#ff0000', '#00ff00', '#0000ff'];
+            ctx.fillStyle = glitchColors[Math.floor(Math.random() * glitchColors.length)];
+            ctx.fillRect(goal.x + shakeX, goal.y + shakeY, goal.size, goal.size);
+            // Add rotation to the goal
+        } else {
+            // DISEGNO PURO (Stabile e Ciano)
+            ctx.fillStyle = goal.color; // #00ffff
+            // Magari aggiungiamo un bordo bianco per far capire che è pronto
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(goal.x, goal.y, goal.size, goal.size);
+            ctx.fillRect(goal.x, goal.y, goal.size, goal.size);
+        }
 
-        // Espandi il cerchio
-        pulseEffect.radius += 2; // Velocità espansione
+        // 5. Draw HUD (Heads-up Display) - Il Punteggio
+        ctx.fillStyle = '#fff';
+        ctx.font = '16px "Courier New", monospace'; // Font stile terminale
+        ctx.fillText('RAM RECOVERED: ' + score + 'kb', 5, 15); // Scrive in alto a sinistra
 
-        // Se diventa troppo grande, spegnilo
-        if (pulseEffect.radius > 100) { // 100 deve essere uguale al range del filtro
-            pulseEffect.active = false;
+        // 6. Draw Pulse Effect (L'onda d'urto)
+        if (pulseEffect.active) {
+            ctx.beginPath();
+            ctx.arc(pulseEffect.x, pulseEffect.y, pulseEffect.radius, 0, Math.PI * 2);
+            ctx.strokeStyle = '#ffffff'; // Colore bianco
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // Espandi il cerchio
+            pulseEffect.radius += 2; // Velocità espansione
+
+            // Se diventa troppo grande, spegnilo
+            if (pulseEffect.radius > 100) { // 100 deve essere uguale al range del filtro
+                pulseEffect.active = false;
+            }
         }
     }
+    else if (gameState === 'GAMEOVER') {
+        drawGameOverScreen();
+    }
+
+
 }
 
 function spawnGlitches(amount) {
@@ -385,6 +425,61 @@ function checkCollisions() {
             }, 100);
         }
     });
+}
+
+function drawStartScreen() {
+    // Sfondo semi-trasparente per vedere i glitch dietro (figata!)
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Titolo
+    ctx.fillStyle = '#00ff00'; // Hacker Green
+    ctx.font = '30px "Courier New", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('THE CORRUPTED BUFFER', canvas.width / 2, canvas.height / 2 - 40);
+
+    // Istruzioni
+    ctx.fillStyle = '#fff';
+    ctx.font = '16px "Courier New", monospace';
+    ctx.fillText('PRESS [ENTER] TO INITIALIZE', canvas.width / 2, canvas.height / 2 + 20);
+
+    ctx.fillStyle = '#aaa';
+    ctx.font = '12px "Courier New", monospace';
+    ctx.fillText('Use ARROWS to move / SPACE to debug', canvas.width / 2, canvas.height / 2 + 50);
+}
+
+function drawGameOverScreen() {
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)'; // Più scuro
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = '#ff0000'; // Rosso errore
+    ctx.font = '30px "Courier New", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('SYSTEM FAILURE', canvas.width / 2, canvas.height / 2 - 40);
+
+    ctx.fillStyle = '#fff';
+    ctx.font = '20px "Courier New", monospace';
+    ctx.fillText('DATA RECOVERED: ' + score + 'kb', canvas.width / 2, canvas.height / 2);
+
+    ctx.fillStyle = '#aaa'; // Lampeggiante? (Opzionale)
+    ctx.font = '16px "Courier New", monospace';
+    ctx.fillText('PRESS [ENTER] TO REBOOT', canvas.width / 2, canvas.height / 2 + 60);
+}
+
+function initGame() {
+    score = 0;
+    player.x = canvas.width / 2;
+    player.y = canvas.height / 2;
+    glitches = []; // Via i vecchi nemici
+    spawnGlitches(10); // Ne creiamo di nuovi
+
+    // Resetta anche il goal
+    goal.x = Math.random() * (canvas.width - 10);
+    goal.y = Math.random() * (canvas.height - 10);
+    goal.isCorrupted = true;
+
+    // IMPORTANTE: Resetta l'allineamento testo per il gioco normale
+    ctx.textAlign = 'start';
 }
 
 // --- GAME LOOP ---
