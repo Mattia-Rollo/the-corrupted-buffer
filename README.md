@@ -16,8 +16,8 @@ Il mondo è infestato da "Glitch" (rumore visivo). Il tuo compito è debuggare l
 ## 📅 Roadmap (Settimana del Focus)
 
 - [x] **Giorno 0:** Setup progetto e Canvas.
-- [ ] **Giorno 1:** Movimento Player e scia "ghosting".
-- [ ] **Giorno 2:** Generazione procedurale dei Glitch (nemici).
+- [x] **Giorno 1:** Movimento Player e scia "ghosting".
+- [x] **Giorno 2:** Generazione procedurale dei Glitch (nemici).
 - [ ] **Giorno 3:** Meccanica di Debug (interazione con i pixel).
 - [ ] **Giorno 4:** Creazione Mappa/Livello (tramite array JS).
 - [ ] **Giorno 5:** Condizione di Vittoria e Polish finale.
@@ -29,3 +29,7 @@ Il mondo è infestato da "Glitch" (rumore visivo). Il tuo compito è debuggare l
 
 ---
 *Progetto personale sviluppato in diretta "No Mic" su Twitch.*
+
+**NEW IDEAS:**
+- [ ] Limitare il numero di impulsi di DEBUG.
+- [ ] Glitch che si muovono e si fanno strada.
