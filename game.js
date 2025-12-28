@@ -68,15 +68,16 @@ window.addEventListener('keydown', (e) => {
 
     // GESTIONE STATI (Nuova parte)
     if (e.code === 'Enter') {
+        console.log("gameState: ", gameState);
         if (gameState === 'START') {
             // Dal menu -> Inizia gioco
             gameState = 'PLAYING';
             playSound('collect'); // Suono di conferma
-            initGame(); // (Creeremo questa funzione tra poco)
+            initGame();
         }
         else if (gameState === 'GAMEOVER') {
             // Dal Game Over -> Ricomincia
-            gameState = 'PLAYING';
+            gameState = 'START';
             playSound('collect');
             initGame();
         }
@@ -145,6 +146,8 @@ function playSound(type) {
 
 function update() {
 
+    console.log("gameState: ", gameState);
+    // console.log("glitches: ", glitches.length);
     if (gameState !== 'PLAYING') return;
     // Move Player based on Input
     if (keys.ArrowUp) player.y -= player.speed;
@@ -197,6 +200,7 @@ function update() {
             player.x = canvas.width / 2;
             player.y = canvas.height / 2;
             glitches = [];
+            gameState = 'PLAYING';
             spawnGlitches(10);
             // Resettiamo il goal altrove
             goal.x = Math.random() * (canvas.width - 10);
@@ -230,7 +234,7 @@ function update() {
     }
 
     // console.log("GLITCHES: ", glitches.length);
-    if (glitches.length > 1000) resetGame();
+    if (glitches.length > 50) resetGame();
 }
 
 function resetGame() {
@@ -238,10 +242,12 @@ function resetGame() {
     player.x = canvas.width / 2;
     player.y = canvas.height / 2;
     glitches = [];
-    spawnGlitches(10);
+    ammountOfGlitches = 10;
+    spawnGlitches(ammountOfGlitches);
     goal.x = Math.random() * (canvas.width - 10);
     goal.y = Math.random() * (canvas.height - 10);
     goal.isCorrupted = true;
+    gameState = 'GAMEOVER';
 }
 
 function draw() {
@@ -254,8 +260,19 @@ function draw() {
 
     // 2. Draw Player
     ctx.fillStyle = player.color;
-    ctx.fillRect(player.x, player.y, player.size, player.size);
+    ctx.fillRect(player.x, player.y, 12, 12);
     ctx.fillStyle = 'rgba(0, 0, 0, 0.0)';
+
+    // 3. Draw Glitches
+    glitches.forEach(glitch => {
+        // Effetto tremolio: disegniamo il glitch leggermente spostato a caso
+        // per farlo sembrare instabile, ma la sua "vera" posizione resta fissa
+        const shakeX = (Math.random() - 0.5) * 4;
+        const shakeY = (Math.random() - 0.5) * 4;
+
+        ctx.fillStyle = glitch.colors[Math.floor(Math.random() * glitch.colors.length)];
+        ctx.fillRect(glitch.x + shakeX, glitch.y + shakeY, glitch.size, glitch.size);
+    });
 
     // 2. LOGICA STATI
     if (gameState === 'START') {
@@ -265,15 +282,6 @@ function draw() {
         // Disegna Player, Goal, HUD, Pulse
         // 3. Draw Glitches
         // drawBackground();
-        glitches.forEach(glitch => {
-            // Effetto tremolio: disegniamo il glitch leggermente spostato a caso
-            // per farlo sembrare instabile, ma la sua "vera" posizione resta fissa
-            const shakeX = (Math.random() - 0.5) * 4;
-            const shakeY = (Math.random() - 0.5) * 4;
-
-            ctx.fillStyle = glitch.colors[Math.floor(Math.random() * glitch.colors.length)];
-            ctx.fillRect(glitch.x + shakeX, glitch.y + shakeY, glitch.size, glitch.size);
-        });
 
         // 4. Draw Goal
         if (goal.isCorrupted) {
