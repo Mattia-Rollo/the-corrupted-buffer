@@ -14,6 +14,7 @@ canvas.height = 480;
 // Possibili valori: 'START', 'PLAYING', 'GAMEOVER'
 let gameState = 'START';
 let speed = 2; // speed of goal and glitches
+let shakeAmount = 0;
 
 // --- PLAYER ---   
 const player = {
@@ -259,6 +260,7 @@ function update() {
         } else {
             // HAI TOCCATO IL GOAL PURO -> VITTORIA!
             playSound('collect');
+            shakeAmount = 10;
             score += 64;
             if (score % 64 === 0) {
                 spawnGlitches(50);
@@ -308,6 +310,7 @@ function update() {
 function gameOver() {
     console.log("SYSTEM FAILURE.");
     playSound('hit');
+    shakeAmount = 20;
     gameState = 'GAMEOVER';
 
     // CONTROLLO RECORD
@@ -340,10 +343,25 @@ function draw() {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+    // --- SCREEN SHAKE MAGIC ---
+    ctx.save(); // Salva la posizione "normale" (0,0)
+
+    if (shakeAmount > 0) {
+        // Sposta tutto il contesto di disegno di un valore casuale
+        const dx = (Math.random() - 0.5) * shakeAmount;
+        const dy = (Math.random() - 0.5) * shakeAmount;
+        ctx.translate(dx, dy);
+
+        // Diminuisci il tremolio (Decay)
+        shakeAmount *= 0.9; // Riduce del 10% ogni frame
+        if (shakeAmount < 0.5) shakeAmount = 0; // Stop se è troppo piccolo
+    }
+
     // 2. Draw Player
     ctx.fillStyle = player.color;
     ctx.fillRect(player.x, player.y, player.size, player.size);
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.0)';
+
+
 
     // --- DRAW PARTICLES ---
     particles.forEach(p => {
@@ -394,16 +412,6 @@ function draw() {
         }
 
 
-
-        // 5. Draw HUD (Heads-up Display) - Il Punteggio
-        ctx.fillStyle = '#fff';
-        ctx.font = '16px "Courier New", monospace'; // Font stile terminale
-        ctx.fillText('RAM RECOVERED: ' + score + 'kb', 5, 15); // Scrive in alto a sinistra
-
-        ctx.fillStyle = '#aaa'; // Colore grigio per non distrarre
-        ctx.fillText('BEST: ' + highScore + 'kb', 5, 30); // Un po' più in basso
-
-
         // 6. Draw Pulse Effect (L'onda d'urto)
         if (pulseEffect.active) {
             ctx.beginPath();
@@ -425,6 +433,19 @@ function draw() {
         drawGameOverScreen();
     }
 
+    ctx.restore();
+    // 5. Draw HUD (Heads-up Display) - Il Punteggio
+    ctx.fillStyle = '#fff';
+    ctx.font = '16px "Courier New", monospace'; // Font stile terminale
+    ctx.fillText('RAM RECOVERED: ' + score + 'kb', 5, 15); // Scrive in alto a sinistra
+
+    ctx.fillStyle = '#aaa'; // Colore grigio per non distrarre
+    ctx.fillText('BEST: ' + highScore + 'kb', 5, 30); // Un po' più in basso
+
+    // ctx.fillStyle = "rgba(0, 0, 0, 0.1)"; // Linee nere semitrasparenti
+    // for (let i = 0; i < canvas.height; i += 4) { // Una riga ogni 4 pixel
+    //     ctx.fillRect(0, i, canvas.width, 2);
+    // }
 
 }
 
@@ -468,6 +489,7 @@ function triggerDebugPower() {
     console.log("DEBUG PULSE ACTIVATED!");
 
     playSound('shoot');
+    shakeAmount = 30;
 
     // Attiviamo l'animazione
     pulseEffect.active = true;
