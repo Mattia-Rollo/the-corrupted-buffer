@@ -7,6 +7,8 @@ const ctx = canvas.getContext('2d');
 // canvas.height = 240;
 canvas.width = 640;
 canvas.height = 480;
+// canvas.width = 1280;
+// canvas.height = 720;
 
 // --- GAME STATE ---
 // Possibili valori: 'START', 'PLAYING', 'GAMEOVER'
@@ -53,6 +55,8 @@ const goal = {
     vy: (Math.random() - 0.5) * 2, // <--- Velocità Y
     size: 12, // Un po' più grande del player
     color: '#00ffff', // Ciano (Cyberpunk style)
+    borderColor: '#90bbcaff',
+    borderWidth: 1,
     isCorrupted: true
 };
 
@@ -196,7 +200,7 @@ function update() {
         if (goal.isCorrupted) {
             // HAI TOCCATO IL GOAL CORROTTO -> MORTE!
             console.log("CRASH! Tried to access corrupted memory!");
-            score = 0;
+            // score = 0;
             player.x = canvas.width / 2;
             player.y = canvas.height / 2;
             glitches = [];
@@ -248,7 +252,7 @@ function resetGame() {
     player.x = canvas.width / 2;
     player.y = canvas.height / 2;
     glitches = [];
-    ammountOfGlitches = 10;
+    ammountOfGlitches = 50;
     spawnGlitches(ammountOfGlitches);
     goal.x = Math.random() * (canvas.width - 10);
     goal.y = Math.random() * (canvas.height - 10);
@@ -266,7 +270,7 @@ function draw() {
 
     // 2. Draw Player
     ctx.fillStyle = player.color;
-    ctx.fillRect(player.x, player.y, 12, 12);
+    ctx.fillRect(player.x, player.y, player.size, player.size);
     ctx.fillStyle = 'rgba(0, 0, 0, 0.0)';
 
     // 3. Draw Glitches
@@ -298,7 +302,7 @@ function draw() {
             const glitchColors = ['#ff0000', '#00ff00', '#0000ff'];
             ctx.fillStyle = glitchColors[Math.floor(Math.random() * glitchColors.length)];
             ctx.fillRect(goal.x + shakeX, goal.y + shakeY, goal.size, goal.size);
-            // Add rotation to the goal
+            // TODO: Add rotation to the goal
         } else {
             // DISEGNO PURO (Stabile e Ciano)
             ctx.fillStyle = goal.color; // #00ffff
@@ -323,7 +327,7 @@ function draw() {
             ctx.stroke();
 
             // Espandi il cerchio
-            pulseEffect.radius += 2; // Velocità espansione
+            pulseEffect.radius += 5; // Velocità espansione
 
             // Se diventa troppo grande, spegnilo
             if (pulseEffect.radius > 100) { // 100 deve essere uguale al range del filtro
@@ -356,7 +360,7 @@ function spawnGlitches(amount) {
 
 function triggerDebugPower() {
     const now = Date.now();
-    if (now - lastDebugTime < 300) return;
+    if (now - lastDebugTime < 500) return;
 
     lastDebugTime = now;
     console.log("DEBUG PULSE ACTIVATED!");
