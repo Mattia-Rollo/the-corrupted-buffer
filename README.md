@@ -51,9 +51,9 @@ Il mondo è infestato da "Glitch" (rumore visivo). Il tuo compito è debuggare l
 - [x] Meccanica di Debug (interazione con i pixel).
 
 **DAY - 2**
-- [ ] Particle System (Esplosioni): Quando usi l'impulso o purifichi il goal, non devono sparire e basta. Devono esplodere in mille pezzi.
-- [ ] High Score (Local Storage): Dobbiamo salvare il record migliore nel browser, così se chiudi e riapri rimane.
-- [ ] Difficulty Ramp: Il gioco deve diventare progressivamente più difficile (i glitch diventano più veloci o più numerosi man mano che fai punti).
+- [x] Particle System (Esplosioni): Quando usi l'impulso o purifichi il goal, non devono sparire e basta. Devono esplodere in mille pezzi.
+- [x] High Score (Local Storage): Dobbiamo salvare il record migliore nel browser, così se chiudi e riapri rimane.
+- [x] Difficulty Ramp: Il gioco deve diventare progressivamente più difficile (i glitch diventano più veloci o più numerosi man mano che fai punti).
 
 **DAY - 3**
 - [ ] Creazione Mappa/Livello (tramite array JS).
