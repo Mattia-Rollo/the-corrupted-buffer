@@ -54,6 +54,8 @@ Il mondo è infestato da "Glitch" (rumore visivo). Il tuo compito è debuggare l
 - [x] Particle System (Esplosioni): Quando usi l'impulso o purifichi il goal, non devono sparire e basta. Devono esplodere in mille pezzi.
 - [x] High Score (Local Storage): Dobbiamo salvare il record migliore nel browser, così se chiudi e riapri rimane.
 - [x] Difficulty Ramp: Il gioco deve diventare progressivamente più difficile (i glitch diventano più veloci o più numerosi man mano che fai punti).
+- [x] Extra: Implement screen shake effects for goal collection, game over, and pulse activation, and ensure HUD remains static.
+- [x] Extra: Add `getSafePosition` for safer object placement, increase glitch spawn amounts, and raise the game over limit.
 
 **DAY - 3**
 - [ ] Creazione Mappa/Livello (tramite array JS).

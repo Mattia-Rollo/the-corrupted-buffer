@@ -336,117 +336,119 @@ function resetGame() {
 }
 
 function draw() {
-    // 1. THE GHOSTING EFFECT (Magic Trick)
-    // Instead of clearing the screen completely (clearRect),
-    // we draw a semi-transparent black rectangle.
-    // This creates the "trail" effect because old frames fade out slowly.
+    // 1. PULIZIA SCHERMO (Lasciamo la scia)
     ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // --- SCREEN SHAKE MAGIC ---
-    ctx.save(); // Salva la posizione "normale" (0,0)
-
+    ctx.save();
     if (shakeAmount > 0) {
-        // Sposta tutto il contesto di disegno di un valore casuale
         const dx = (Math.random() - 0.5) * shakeAmount;
         const dy = (Math.random() - 0.5) * shakeAmount;
         ctx.translate(dx, dy);
-
-        // Diminuisci il tremolio (Decay)
-        shakeAmount *= 0.9; // Riduce del 10% ogni frame
-        if (shakeAmount < 0.5) shakeAmount = 0; // Stop se è troppo piccolo
+        shakeAmount *= 0.9;
+        if (shakeAmount < 0.5) shakeAmount = 0;
     }
-
-    // 2. Draw Player
-    ctx.fillStyle = player.color;
-    ctx.fillRect(player.x, player.y, player.size, player.size);
-
-
-
-    // --- DRAW PARTICLES ---
-    particles.forEach(p => {
-        ctx.globalAlpha = p.life; // Diventa trasparente man mano che muore
-        ctx.fillStyle = p.color;
-        ctx.fillRect(p.x, p.y, p.size, p.size);
-    });
-    ctx.globalAlpha = 1.0; // IMPORTANTE: Resetta l'opacità per il resto del gioco!
-
-    // 3. Draw Glitches
-    glitches.forEach(glitch => {
-        // Effetto tremolio: disegniamo il glitch leggermente spostato a caso
-        // per farlo sembrare instabile, ma la sua "vera" posizione resta fissa
-        const shakeX = (Math.random() - 0.5) * speed;
-        const shakeY = (Math.random() - 0.5) * speed;
-
-        ctx.fillStyle = glitch.colors[Math.floor(Math.random() * glitch.colors.length)];
-        ctx.fillRect(glitch.x + shakeX, glitch.y + shakeY, glitch.size, glitch.size);
-    });
 
     // 2. LOGICA STATI
     if (gameState === 'START') {
         drawStartScreen();
     }
     else if (gameState === 'PLAYING') {
-        // Disegna Player, Goal, HUD, Pulse
-        // 3. Draw Glitches
-        // drawBackground();
+        // --- DRAW PLAYER CON RGB SPLIT ---
+        // Usiamo la nuova funzione invece di ctx.fillRect
+        drawGlitchRect(player.x, player.y, player.size, player.size, player.color);
 
-        // 4. Draw Goal
-        if (goal.isCorrupted) {
-            // DISEGNO CORROTTO (Come un glitch nemico)
+        // --- DRAW PARTICLES ---
+        particles.forEach(p => {
+            ctx.globalAlpha = p.life;
+            ctx.fillStyle = p.color;
+            ctx.fillRect(p.x, p.y, p.size, p.size);
+        });
+        ctx.globalAlpha = 1.0;
+
+        // --- DRAW GLITCHES CON RGB SPLIT ---
+        glitches.forEach(glitch => {
             const shakeX = (Math.random() - 0.5) * speed;
             const shakeY = (Math.random() - 0.5) * speed;
-            // Usiamo colori da glitch per camuffarlo
-            const glitchColors = ['#ff0000', '#00ff00', '#0000ff'];
-            ctx.fillStyle = glitchColors[Math.floor(Math.random() * glitchColors.length)];
-            ctx.fillRect(goal.x + shakeX, goal.y + shakeY, goal.size, goal.size);
-            // TODO: Add rotation to the goal
+            // Usiamo la nuova funzione anche qui!
+            // Nota: prendiamo il primo colore dell'array o quello corrente
+            let color = glitch.colors[Math.floor(Math.random() * glitch.colors.length)];
+            drawGlitchRect(glitch.x + shakeX, glitch.y + shakeY, glitch.size, glitch.size, color);
+        });
+
+        // --- DRAW GOAL ---
+        if (goal.isCorrupted) {
+            const shakeX = (Math.random() - 0.5) * speed;
+            const shakeY = (Math.random() - 0.5) * speed;
+            // Il goal corrotto è instabile, quindi RGB split pesante!
+            drawGlitchRect(goal.x + shakeX, goal.y + shakeY, goal.size, goal.size, '#ff00ff');
         } else {
-            // DISEGNO PURO (Stabile e Ciano)
-            ctx.fillStyle = goal.color; // #00ffff
-            // Magari aggiungiamo un bordo bianco per far capire che è pronto
+            // Il goal puro è stabile, lo disegniamo normale (senza RGB split)
+            ctx.fillStyle = goal.color;
             ctx.strokeStyle = '#fff';
             ctx.lineWidth = 2;
             ctx.strokeRect(goal.x, goal.y, goal.size, goal.size);
             ctx.fillRect(goal.x, goal.y, goal.size, goal.size);
         }
 
-
-        // 6. Draw Pulse Effect (L'onda d'urto)
+        // Pulse Effect
         if (pulseEffect.active) {
             ctx.beginPath();
             ctx.arc(pulseEffect.x, pulseEffect.y, pulseEffect.radius, 0, Math.PI * 2);
-            ctx.strokeStyle = '#ffffff'; // Colore bianco
+            ctx.strokeStyle = '#ffffff';
             ctx.lineWidth = 3;
             ctx.stroke();
-
-            // Espandi il cerchio
-            pulseEffect.radius += 5; // Velocità espansione
-
-            // Se diventa troppo grande, spegnilo
-            if (pulseEffect.radius > 100) { // 100 deve essere uguale al range del filtro
-                pulseEffect.active = false;
-            }
+            pulseEffect.radius += 5;
+            if (pulseEffect.radius > 100) pulseEffect.active = false;
         }
     }
     else if (gameState === 'GAMEOVER') {
         drawGameOverScreen();
     }
 
-    ctx.restore();
-    // 5. Draw HUD (Heads-up Display) - Il Punteggio
+    ctx.restore(); // Fine tremolio oggetti
+
+    // --- HUD (Sempre sopra tutto) ---
     ctx.fillStyle = '#fff';
-    ctx.font = '16px "Courier New", monospace'; // Font stile terminale
-    ctx.fillText('RAM RECOVERED: ' + score + 'kb', 5, 15); // Scrive in alto a sinistra
+    ctx.font = '16px "Courier New", monospace';
+    ctx.fillText('RAM: ' + score + 'kb', 5, 15);
+    ctx.fillStyle = '#aaa';
+    ctx.fillText('BEST: ' + highScore + 'kb', 5, 30);
 
-    ctx.fillStyle = '#aaa'; // Colore grigio per non distrarre
-    ctx.fillText('BEST: ' + highScore + 'kb', 5, 30); // Un po' più in basso
+    // --- CRT SCANLINES VISIBILI ---
+    // TRUCCO: Usiamo BIANCO molto trasparente invece di nero
+    // Questo crea una "texture" visibile anche sul nero
+    ctx.fillStyle = "rgba(255, 255, 255, 0.03)";
+    for (let i = 0; i < canvas.height; i += 2) {
+        ctx.fillRect(0, i, canvas.width, 1);
+    }
 
-    // ctx.fillStyle = "rgba(0, 0, 0, 0.1)"; // Linee nere semitrasparenti
-    // for (let i = 0; i < canvas.height; i += 4) { // Una riga ogni 4 pixel
-    //     ctx.fillRect(0, i, canvas.width, 2);
-    // }
+    // --- VIGNETTE (Angoli scuri) ---
+    const gradient = ctx.createRadialGradient(
+        canvas.width / 2, canvas.height / 2, canvas.height / 3,
+        canvas.width / 2, canvas.height / 2, canvas.height
+    );
+    gradient.addColorStop(0, "rgba(0,0,0,0)");
+    gradient.addColorStop(1, "rgba(0,0,0,0.6)");
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
 
+function drawGlitchRect(x, y, w, h, color) {
+    // 1. Canale Rosso (Spostato a sinistra)
+    ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
+    // Più il giocatore è veloce o più shake c'è, più i colori si separano
+    let offset = 2 + shakeAmount;
+    ctx.fillRect(x - offset, y, w, h);
+
+    // 2. Canale Blu (Spostato a destra)
+    ctx.fillStyle = 'rgba(0, 0, 255, 0.5)';
+    ctx.fillRect(x + offset, y, w, h);
+
+    // 3. Canale Principale (Il colore vero, al centro)
+    ctx.fillStyle = color;
+    ctx.fillRect(x, y, w, h);
 }
 
 function spawnGlitches(amount) {
@@ -483,7 +485,7 @@ function createExplosion(x, y, color) {
 
 function triggerDebugPower() {
     const now = Date.now();
-    if (now - lastDebugTime < 500) return;
+    if (now - lastDebugTime < 800) return;
 
     lastDebugTime = now;
     console.log("DEBUG PULSE ACTIVATED!");
