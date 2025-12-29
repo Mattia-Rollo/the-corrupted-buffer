@@ -13,6 +13,7 @@ canvas.height = 480;
 // --- GAME STATE ---
 // Possibili valori: 'START', 'PLAYING', 'GAMEOVER'
 let gameState = 'START';
+let speed = 2;
 
 // --- PLAYER ---   
 const player = {
@@ -24,6 +25,7 @@ const player = {
 };
 
 // --- GLITCHES ---
+let particles = [];
 let glitches = [];
 let ammountOfGlitches = 10;
 
@@ -48,11 +50,12 @@ let pulseEffect = {
 // --- SCORE & GOAL ---
 let score = 0; // Il punteggio parte da zero
 
+
 const goal = {
     x: Math.random() * (canvas.width - 10),
     y: Math.random() * (canvas.height - 10),
-    vx: (Math.random() - 0.5) * 2, // <--- Velocità X
-    vy: (Math.random() - 0.5) * 2, // <--- Velocità Y
+    vx: (Math.random() - 0.5) * speed, // <--- Velocità X
+    vy: (Math.random() - 0.5) * speed, // <--- Velocità Y
     size: 12, // Un po' più grande del player
     color: '#00ffff', // Ciano (Cyberpunk style)
     borderColor: '#90bbcaff',
@@ -165,6 +168,21 @@ function update() {
     if (player.x > canvas.width - player.size) player.x = canvas.width - player.size;
     if (player.y < 0) player.y = 0;
     if (player.y > canvas.height - player.size) player.y = canvas.height - player.size;
+
+    // Update particles (esplosioni)
+    for (let i = particles.length - 1; i >= 0; i--) {
+        let p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= 0.02; // Muore lentamente (sbiadisce o rimpicciolisce)
+
+        // Se la vita è finita, rimuovilo dall'array
+        if (p.life <= 0) {
+            particles.splice(i, 1);
+        }
+    }
+
+    // Update glitches (nemici)
     glitches.forEach(glitch => {
         // 1. Applica il movimento
         glitch.x += glitch.vx;
@@ -225,11 +243,11 @@ function update() {
             goal.x = goalNextPosition.x;
             goal.y = goalNextPosition.y;
 
-            goal.vx = (Math.random() - 0.5) * 2;
-            goal.vy = (Math.random() - 0.5) * 2;
+            goal.vx = (Math.random() - 0.5) * speed;
+            goal.vy = (Math.random() - 0.5) * speed;
 
             goal.isCorrupted = true;
-            spawnGlitches(1);
+            spawnGlitches(5);
         }
     }
 
@@ -273,12 +291,20 @@ function draw() {
     ctx.fillRect(player.x, player.y, player.size, player.size);
     ctx.fillStyle = 'rgba(0, 0, 0, 0.0)';
 
+    // --- DRAW PARTICLES ---
+    particles.forEach(p => {
+        ctx.globalAlpha = p.life; // Diventa trasparente man mano che muore
+        ctx.fillStyle = p.color;
+        ctx.fillRect(p.x, p.y, p.size, p.size);
+    });
+    ctx.globalAlpha = 1.0; // IMPORTANTE: Resetta l'opacità per il resto del gioco!
+
     // 3. Draw Glitches
     glitches.forEach(glitch => {
         // Effetto tremolio: disegniamo il glitch leggermente spostato a caso
         // per farlo sembrare instabile, ma la sua "vera" posizione resta fissa
-        const shakeX = (Math.random() - 0.5) * 4;
-        const shakeY = (Math.random() - 0.5) * 4;
+        const shakeX = (Math.random() - 0.5) * speed;
+        const shakeY = (Math.random() - 0.5) * speed;
 
         ctx.fillStyle = glitch.colors[Math.floor(Math.random() * glitch.colors.length)];
         ctx.fillRect(glitch.x + shakeX, glitch.y + shakeY, glitch.size, glitch.size);
@@ -296,8 +322,8 @@ function draw() {
         // 4. Draw Goal
         if (goal.isCorrupted) {
             // DISEGNO CORROTTO (Come un glitch nemico)
-            const shakeX = (Math.random() - 0.5) * 4;
-            const shakeY = (Math.random() - 0.5) * 4;
+            const shakeX = (Math.random() - 0.5) * speed;
+            const shakeY = (Math.random() - 0.5) * speed;
             // Usiamo colori da glitch per camuffarlo
             const glitchColors = ['#ff0000', '#00ff00', '#0000ff'];
             ctx.fillStyle = glitchColors[Math.floor(Math.random() * glitchColors.length)];
@@ -348,13 +374,28 @@ function spawnGlitches(amount) {
         const glitch = {
             x: Math.random() * canvas.width,
             y: Math.random() * canvas.height,
-            vx: (Math.random() - 0.5) * 2, // <--- NUOVO: Velocità X (tra -1 e 1)
-            vy: (Math.random() - 0.5) * 2, // <--- NUOVO: Velocità Y (tra -1 e 1)
+            vx: (Math.random() - 0.5) * speed, // <--- NUOVO: Velocità X (tra -1 e 1)
+            vy: (Math.random() - 0.5) * speed, // <--- NUOVO: Velocità Y (tra -1 e 1)
             size: 12, // bigger than player
             colors: ['#ff0000', '#00ff00', '#0000ff'] // red = danger
         };
         // Save it in the list
         glitches.push(glitch);
+    }
+}
+
+function createExplosion(x, y, color) {
+    const particleCount = 15; // Quanti pezzetti creare
+    for (let i = 0; i < particleCount; i++) {
+        particles.push({
+            x: x,
+            y: y,
+            vx: (Math.random() - 0.5) * 5, // Velocità esplosiva X
+            vy: (Math.random() - 0.5) * 5, // Velocità esplosiva Y
+            size: Math.random() * 3 + 1,   // Dimensione casuale
+            color: color,
+            life: 1.0 // Vita del pixel (1.0 = 100%)
+        });
     }
 }
 
@@ -380,14 +421,18 @@ function triggerDebugPower() {
     // Questa è una riga da vero Javascript Developer da mostrare in stream.
     // "Sovrascrivi la lista glitch tenendo solo quelli lontani dal player"
     // Usiamo il Teorema di Pitagora per la distanza
+    // FILTER MAGIC & EXPLOSIONS:
     glitches = glitches.filter(glitch => {
         const dx = glitch.x - player.x;
         const dy = glitch.y - player.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
-        // Se la distanza è maggiore del range, TIENILO.
-        // Se è minore (è vicino), verrà eliminato (ritorna false).
-        return distance > range;
+        if (distance <= range) {
+            // Se è nel raggio, ESPLODE prima di essere rimosso!
+            createExplosion(glitch.x, glitch.y, glitch.colors[0]); // Usa il colore del glitch
+            return false; // Rimuovi dal gioco
+        }
+        return true; // Tieni nel gioco
     });
 
     // Effetto visivo (Flash dello schermo)
@@ -398,9 +443,11 @@ function triggerDebugPower() {
     const distToGoalY = goal.y - player.y;
     const distToGoal = Math.sqrt(distToGoalX * distToGoalX + distToGoalY * distToGoalY);
 
-    if (distToGoal < 100) { // 100 è il range dell'impulso
+    if (distToGoal < 100 && goal.isCorrupted) { // Aggiungi check isCorrupted per non farlo esplodere sempre
+        createExplosion(goal.x, goal.y, '#ffffff'); // Esplosione bianca di purificazione
         goal.isCorrupted = false;
         console.log("Goal Purified!");
+        playSound('collect'); // Magari un suono extra qui?
     }
 }
 
