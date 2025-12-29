@@ -152,6 +152,32 @@ function playSound(type) {
 
 // --- CORE FUNCTIONS ---
 
+function getSafePosition(minDistance) {
+    let x, y, distance;
+    let safe = false;
+    let attempts = 0;
+
+    // Continua a provare finché non trovi un posto sicuro
+    while (!safe && attempts < 100) { // Limitiamo a 100 tentativi per evitare crash se lo schermo è pieno
+        x = Math.random() * (canvas.width - 20); // -20 per non uscire dai bordi
+        y = Math.random() * (canvas.height - 20);
+
+        // Calcola la distanza dal giocatore (Pitagora)
+        const dx = x - player.x;
+        const dy = y - player.y;
+        distance = Math.sqrt(dx * dx + dy * dy);
+
+        // Se siamo abbastanza lontani, APPROVATO!
+        if (distance > minDistance) {
+            safe = true;
+        }
+        attempts++;
+    }
+
+    // Se dopo 100 tentativi non trova posto (improbabile), te lo dà comunque
+    return { x: x, y: y };
+}
+
 function update() {
 
     // console.log("gameState: ", gameState);
@@ -235,31 +261,32 @@ function update() {
             playSound('collect');
             score += 64;
             if (score % 64 === 0) {
-                spawnGlitches(10);
-                playSound('hit');
-            } else if (score % 128 === 0) {
-                spawnGlitches(20);
-                playSound('hit');
-            } else if (score % 256 === 0) {
                 spawnGlitches(50);
                 playSound('hit');
-            } else if (score % 512 === 0) {
+            } else if (score % 128 === 0) {
                 spawnGlitches(100);
                 playSound('hit');
-            } else if (score % 1024 === 0) {
+            } else if (score % 256 === 0) {
                 spawnGlitches(200);
+                playSound('hit');
+            } else if (score % 512 === 0) {
+                spawnGlitches(400);
+                playSound('hit');
+            } else if (score % 1024 === 0) {
+                spawnGlitches(1100);
                 playSound('hit');
             }
             console.log("Data recovered! Score:", score);
 
             // Sposta il goal
-            let goalNextPosition = {
-                x: Math.random() * (canvas.width - 10),
-                y: Math.random() * (canvas.height - 10)
-            };
+            // let goalNextPosition = {
+            //     x: Math.random() * (canvas.width - 10),
+            //     y: Math.random() * (canvas.height - 10)
+            // };
             // ... (tieni il tuo codice che controlla che non nasca nei glitch) ...
-            goal.x = goalNextPosition.x;
-            goal.y = goalNextPosition.y;
+            const safePos = getSafePosition(100);
+            goal.x = safePos.x;
+            goal.y = safePos.y;
 
             goal.vx = (Math.random() - 0.5) * speed;
             goal.vy = (Math.random() - 0.5) * speed;
@@ -275,7 +302,7 @@ function update() {
     }
 
     // console.log("GLITCHES: ", glitches.length);
-    if (glitches.length > 50) gameOver();
+    if (glitches.length > 10000) gameOver();
 }
 
 function gameOver() {
@@ -403,16 +430,17 @@ function draw() {
 
 function spawnGlitches(amount) {
     for (let i = 0; i < amount; i++) {
-        // Create a new object for every glitch with a fixed position
+        // Chiediamo una posizione sicura ad almeno 150 pixel dal giocatore
+        const pos = getSafePosition(150);
+
         const glitch = {
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height,
-            vx: (Math.random() - 0.5) * speed, // <--- NUOVO: Velocità X (tra -1 e 1)
-            vy: (Math.random() - 0.5) * speed, // <--- NUOVO: Velocità Y (tra -1 e 1)
-            size: 12, // bigger than player
-            colors: ['#ff0000', '#00ff00', '#0000ff'] // red = danger
+            x: pos.x,
+            y: pos.y,
+            vx: (Math.random() - 0.5) * speed,
+            vy: (Math.random() - 0.5) * speed,
+            size: 12,
+            colors: ['#ff0000', '#00ff00', '#0000ff']
         };
-        // Save it in the list
         glitches.push(glitch);
     }
 }
