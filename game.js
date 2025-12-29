@@ -20,7 +20,7 @@ let shakeAmount = 0;
 const player = {
     x: canvas.width / 2,
     y: canvas.height / 2,
-    size: 4, // A bit bigger than 1 pixel to be visible
+    size: 10, // A bit bigger than 1 pixel to be visible
     speed: 2,
     color: '#00ff00' // Hacker Green
 };
@@ -37,9 +37,16 @@ const keys = {
     ArrowDown: false,
     ArrowLeft: false,
     ArrowRight: false,
+    KeyW: false,
+    KeyA: false,
+    KeyS: false,
+    KeyD: false,
     Space: false
 };
+
+// --- PULSE EFFECT ---
 let lastDebugTime = 0; // Per gestire il cooldown
+let debugCooldown = 800; // Tempo di cooldown in ms
 
 let pulseEffect = {
     active: false,
@@ -189,6 +196,10 @@ function update() {
     if (keys.ArrowDown) player.y += player.speed;
     if (keys.ArrowLeft) player.x -= player.speed;
     if (keys.ArrowRight) player.x += player.speed;
+    if (keys.KeyW) player.y -= player.speed;
+    if (keys.KeyA) player.x -= player.speed;
+    if (keys.KeyS) player.y += player.speed;
+    if (keys.KeyD) player.x += player.speed;
 
     // Boundary Checks (Keep player inside screen)
     // Simple logic: if < 0, set to 0. If > width, set to width.
@@ -262,6 +273,7 @@ function update() {
             playSound('collect');
             shakeAmount = 10;
             score += 64;
+            debugCooldown -= 10;
             if (score % 64 === 0) {
                 spawnGlitches(50);
                 playSound('hit');
@@ -350,6 +362,25 @@ function draw() {
         if (shakeAmount < 0.5) shakeAmount = 0;
     }
 
+    drawGlitchRect(player.x, player.y, player.size, player.size, player.color);
+
+    // --- DRAW PARTICLES ---
+    particles.forEach(p => {
+        ctx.globalAlpha = p.life;
+        ctx.fillStyle = p.color;
+        ctx.fillRect(p.x, p.y, p.size, p.size);
+    });
+    ctx.globalAlpha = 1.0;
+
+    // --- DRAW GLITCHES CON RGB SPLIT ---
+    glitches.forEach(glitch => {
+        const shakeX = (Math.random() - 0.5) * speed;
+        const shakeY = (Math.random() - 0.5) * speed;
+        // Usiamo la nuova funzione anche qui!
+        // Nota: prendiamo il primo colore dell'array o quello corrente
+        let color = glitch.colors[Math.floor(Math.random() * glitch.colors.length)];
+        drawGlitchRect(glitch.x + shakeX, glitch.y + shakeY, glitch.size, glitch.size, color);
+    });
     // 2. LOGICA STATI
     if (gameState === 'START') {
         drawStartScreen();
@@ -357,25 +388,6 @@ function draw() {
     else if (gameState === 'PLAYING') {
         // --- DRAW PLAYER CON RGB SPLIT ---
         // Usiamo la nuova funzione invece di ctx.fillRect
-        drawGlitchRect(player.x, player.y, player.size, player.size, player.color);
-
-        // --- DRAW PARTICLES ---
-        particles.forEach(p => {
-            ctx.globalAlpha = p.life;
-            ctx.fillStyle = p.color;
-            ctx.fillRect(p.x, p.y, p.size, p.size);
-        });
-        ctx.globalAlpha = 1.0;
-
-        // --- DRAW GLITCHES CON RGB SPLIT ---
-        glitches.forEach(glitch => {
-            const shakeX = (Math.random() - 0.5) * speed;
-            const shakeY = (Math.random() - 0.5) * speed;
-            // Usiamo la nuova funzione anche qui!
-            // Nota: prendiamo il primo colore dell'array o quello corrente
-            let color = glitch.colors[Math.floor(Math.random() * glitch.colors.length)];
-            drawGlitchRect(glitch.x + shakeX, glitch.y + shakeY, glitch.size, glitch.size, color);
-        });
 
         // --- DRAW GOAL ---
         if (goal.isCorrupted) {
@@ -485,7 +497,7 @@ function createExplosion(x, y, color) {
 
 function triggerDebugPower() {
     const now = Date.now();
-    if (now - lastDebugTime < 800) return;
+    if (now - lastDebugTime < debugCooldown) return;
 
     lastDebugTime = now;
     console.log("DEBUG PULSE ACTIVATED!");

@@ -30,19 +30,9 @@ Il mondo è infestato da "Glitch" (rumore visivo). Il tuo compito è debuggare l
 ---
 *Progetto personale sviluppato in diretta su Twitch.*
 
-**Extra:**
-- [ ] Limitare il numero di impulsi di DEBUG.
-- [x] Glitch che si muovono
-
-**TODO:**
-- [ ] High Score: Salvare il punteggio nel browser (Local Storage) così rimane anche se chiudi la pagina.
-- [ ] Particle System: Esplosioni di pixel quando usi il Pulse.
-
-
-
 
 ---
-## Progression:
+## Progressions:
 
 **DAY - 1**
 - [x] Setup progetto e Canvas.
@@ -60,3 +50,8 @@ Il mondo è infestato da "Glitch" (rumore visivo). Il tuo compito è debuggare l
 **DAY - 3**
 - [ ] Creazione Mappa/Livello (tramite array JS).
 - [ ] Condizione di Vittoria e Polish finale.
+- [ ] Aggiungere la vita al player.
+- [ ] Deployment: Metteremo il gioco su GitHub Pages o Netlify.
+- [ ] Obiettivo: Incollare il link in chat e dire "Provatelo voi adesso". La chat impazzirà.
+- [ ] Mobile Support: Aggiungeremo i controlli touch (perché il 50% di chi cliccherà il link sarà da telefono).
+- [ ] Dash Ability: (Se avanza tempo) Uno scatto veloce per schivare i nemici all'ultimo secondo.
