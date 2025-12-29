@@ -18,7 +18,7 @@ Il mondo è infestato da "Glitch" (rumore visivo). Il tuo compito è debuggare l
 - [x] **Giorno 0:** Setup progetto e Canvas.
 - [x] **Giorno 1:** Movimento Player e scia "ghosting".
 - [x] **Giorno 2:** Generazione procedurale dei Glitch (nemici).
-- [ ] **Giorno 3:** Meccanica di Debug (interazione con i pixel).
+- [x] **Giorno 3:** Meccanica di Debug (interazione con i pixel).
 - [ ] **Giorno 4:** Creazione Mappa/Livello (tramite array JS).
 - [ ] **Giorno 5:** Condizione di Vittoria e Polish finale.
 
@@ -28,8 +28,33 @@ Il mondo è infestato da "Glitch" (rumore visivo). Il tuo compito è debuggare l
 - **Nessuna libreria esterna.**
 
 ---
-*Progetto personale sviluppato in diretta "No Mic" su Twitch.*
+*Progetto personale sviluppato in diretta su Twitch.*
 
-**NEW IDEAS:**
+**Extra:**
 - [ ] Limitare il numero di impulsi di DEBUG.
-- [ ] Glitch che si muovono e si fanno strada.
+- [x] Glitch che si muovono
+
+**TODO:**
+- [ ] High Score: Salvare il punteggio nel browser (Local Storage) così rimane anche se chiudi la pagina.
+- [ ] Particle System: Esplosioni di pixel quando usi il Pulse.
+
+
+
+
+---
+## Progression:
+
+**DAY - 1**
+- [x] Setup progetto e Canvas.
+- [x] Movimento Player e scia "ghosting".
+- [x] Generazione procedurale dei Glitch (nemici).
+- [x] Meccanica di Debug (interazione con i pixel).
+
+**DAY - 2**
+- [ ] Particle System (Esplosioni): Quando usi l'impulso o purifichi il goal, non devono sparire e basta. Devono esplodere in mille pezzi.
+- [ ] High Score (Local Storage): Dobbiamo salvare il record migliore nel browser, così se chiudi e riapri rimane.
+- [ ] Difficulty Ramp: Il gioco deve diventare progressivamente più difficile (i glitch diventano più veloci o più numerosi man mano che fai punti).
+
+**DAY - 3**
+- [ ] Creazione Mappa/Livello (tramite array JS).
+- [ ] Condizione di Vittoria e Polish finale.
