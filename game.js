@@ -13,7 +13,7 @@ canvas.height = 480;
 // --- GAME STATE ---
 // Possibili valori: 'START', 'PLAYING', 'GAMEOVER'
 let gameState = 'START';
-let speed = 2;
+let speed = 2; // speed of goal and glitches
 
 // --- PLAYER ---   
 const player = {
@@ -49,6 +49,7 @@ let pulseEffect = {
 
 // --- SCORE & GOAL ---
 let score = 0; // Il punteggio parte da zero
+let highScore = parseInt(localStorage.getItem('corruptedHighScore')) || 0;
 
 
 const goal = {
@@ -218,20 +219,37 @@ function update() {
         if (goal.isCorrupted) {
             // HAI TOCCATO IL GOAL CORROTTO -> MORTE!
             console.log("CRASH! Tried to access corrupted memory!");
+            gameOver();
             // score = 0;
-            player.x = canvas.width / 2;
-            player.y = canvas.height / 2;
-            glitches = [];
-            playSound('hit');
-            gameState = 'GAMEOVER';
-            spawnGlitches(50);
-            // Resettiamo il goal altrove
-            goal.x = Math.random() * (canvas.width - 10);
-            goal.y = Math.random() * (canvas.height - 10);
+            // player.x = canvas.width / 2;
+            // player.y = canvas.height / 2;
+            // glitches = [];
+            // playSound('hit');
+            // gameState = 'GAMEOVER';
+            // spawnGlitches(50);
+            // // Resettiamo il goal altrove
+            // goal.x = Math.random() * (canvas.width - 10);
+            // goal.y = Math.random() * (canvas.height - 10);
         } else {
             // HAI TOCCATO IL GOAL PURO -> VITTORIA!
             playSound('collect');
             score += 64;
+            if (score % 64 === 0) {
+                spawnGlitches(10);
+                playSound('hit');
+            } else if (score % 128 === 0) {
+                spawnGlitches(20);
+                playSound('hit');
+            } else if (score % 256 === 0) {
+                spawnGlitches(50);
+                playSound('hit');
+            } else if (score % 512 === 0) {
+                spawnGlitches(100);
+                playSound('hit');
+            } else if (score % 1024 === 0) {
+                spawnGlitches(200);
+                playSound('hit');
+            }
             console.log("Data recovered! Score:", score);
 
             // Sposta il goal
@@ -261,8 +279,17 @@ function update() {
 }
 
 function gameOver() {
-    console.log("GAMEOVER");
+    console.log("SYSTEM FAILURE.");
+    playSound('hit');
     gameState = 'GAMEOVER';
+
+    // CONTROLLO RECORD
+    if (score > highScore) {
+        highScore = score;
+        // Salviamo nel browser
+        localStorage.setItem('corruptedHighScore', highScore);
+        console.log("NEW RECORD SAVED!");
+    }
 }
 
 function resetGame() {
@@ -339,10 +366,16 @@ function draw() {
             ctx.fillRect(goal.x, goal.y, goal.size, goal.size);
         }
 
+
+
         // 5. Draw HUD (Heads-up Display) - Il Punteggio
         ctx.fillStyle = '#fff';
         ctx.font = '16px "Courier New", monospace'; // Font stile terminale
         ctx.fillText('RAM RECOVERED: ' + score + 'kb', 5, 15); // Scrive in alto a sinistra
+
+        ctx.fillStyle = '#aaa'; // Colore grigio per non distrarre
+        ctx.fillText('BEST: ' + highScore + 'kb', 5, 30); // Un po' più in basso
+
 
         // 6. Draw Pulse Effect (L'onda d'urto)
         if (pulseEffect.active) {
@@ -473,17 +506,15 @@ function checkCollisions() {
             player.y < glitch.y + glitch.size &&
             player.y + player.size > glitch.y
         ) {
-            playSound('hit');
-            console.log("SYSTEM FAILURE.");
-            gameState = 'GAMEOVER';
-            // score = 0; // Azzera punteggio (o togli punti)
-            player.x = canvas.width / 2;
-            player.y = canvas.height / 2;
-            glitches = []; // Pulisci lo schermo per dare tregua al giocatore
-            ammountOfGlitches += 10;
-            spawnGlitches(ammountOfGlitches); // Ricrea un set base
+            gameOver();
+            // // score = 0; // Azzera punteggio (o togli punti)
+            // player.x = canvas.width / 2;
+            // player.y = canvas.height / 2;
+            // glitches = []; // Pulisci lo schermo per dare tregua al giocatore
+            // ammountOfGlitches += 10;
+            // spawnGlitches(ammountOfGlitches); // Ricrea un set base
 
-            // Opzionale: Cambia colore per un attimo per feedback visivo
+            // // Opzionale: Cambia colore per un attimo per feedback visivo
             goal.color = '#ff0000';
             setTimeout(() => {
                 goal.color = '#00ffff';
@@ -514,19 +545,30 @@ function drawStartScreen() {
 }
 
 function drawGameOverScreen() {
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)'; // Più scuro
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    ctx.fillStyle = '#ff0000'; // Rosso errore
+    ctx.fillStyle = '#ff0000';
     ctx.font = '30px "Courier New", monospace';
     ctx.textAlign = 'center';
     ctx.fillText('SYSTEM FAILURE', canvas.width / 2, canvas.height / 2 - 40);
 
     ctx.fillStyle = '#fff';
     ctx.font = '20px "Courier New", monospace';
-    ctx.fillText('DATA RECOVERED: ' + score + 'kb', canvas.width / 2, canvas.height / 2);
+    ctx.fillText('RECOVERED: ' + score + 'kb', canvas.width / 2, canvas.height / 2);
 
-    ctx.fillStyle = '#aaa'; // Lampeggiante? (Opzionale)
+    // Mostra il record
+    ctx.fillStyle = '#ffff00'; // Giallo
+    ctx.font = '16px "Courier New", monospace';
+    ctx.fillText('BEST RECORD: ' + highScore + 'kb', canvas.width / 2, canvas.height / 2 + 30);
+
+    // Messaggio speciale se hai battuto il record
+    if (score >= highScore && score > 0) {
+        ctx.fillStyle = '#00ff00';
+        ctx.fillText('!!! NEW HIGH SCORE !!!', canvas.width / 2, canvas.height / 2 + 90);
+    }
+
+    ctx.fillStyle = '#aaa';
     ctx.font = '16px "Courier New", monospace';
     ctx.fillText('PRESS [ENTER] TO REBOOT', canvas.width / 2, canvas.height / 2 + 60);
 }
