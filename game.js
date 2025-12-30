@@ -2,13 +2,17 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-// Set resolution (Low res for retro feel)
-// canvas.width = 320;
-// canvas.height = 240;
-canvas.width = 640;
-canvas.height = 480;
-// canvas.width = 1280;
-// canvas.height = 720;
+const GAME_WIDTH = 800;
+const GAME_HEIGHT = 600;
+
+canvas.width = GAME_WIDTH;
+canvas.height = GAME_HEIGHT;
+
+
+canvas.style.width = '100%';
+canvas.style.height = '100%';
+canvas.style.imageRendering = 'pixelated';
+canvas.style.objectFit = 'contain';
 
 // --- GAME STATE ---
 // Possibili valori: 'START', 'PLAYING', 'GAMEOVER'
@@ -22,8 +26,11 @@ const player = {
     y: canvas.height / 2,
     size: 10, // A bit bigger than 1 pixel to be visible
     speed: 2,
-    color: '#00ff00' // Hacker Green
+    color: '#00ff00', // Hacker Green
+    isDashing: false,
+    dashCooldown: 0
 };
+let dashTrails = [];
 
 // --- GLITCHES ---
 let particles = [];
@@ -41,7 +48,8 @@ const keys = {
     KeyA: false,
     KeyS: false,
     KeyD: false,
-    Space: false
+    Space: false,
+    ShiftLeft: false,
 };
 
 // --- PULSE EFFECT ---
@@ -77,14 +85,14 @@ const goal = {
 window.addEventListener('keydown', (e) => {
     // Gestione tasti di movimento (solo se stiamo giocando)
     if (gameState === 'PLAYING') {
-        if (keys.hasOwnProperty(e.code) || e.code === 'Space') {
+        if (keys.hasOwnProperty(e.code)) {
             keys[e.code] = true;
         }
     }
 
     // GESTIONE STATI (Nuova parte)
     if (e.code === 'Enter') {
-        console.log("gameState: ", gameState);
+        // console.log("gameState: ", gameState);
         if (gameState === 'START') {
             // Dal menu -> Inizia gioco
             gameState = 'PLAYING';
@@ -106,6 +114,59 @@ window.addEventListener('keyup', (e) => {
         keys[e.code] = false;
     }
 });
+
+canvas.addEventListener('touchstart', handleTouch, { passive: false });
+canvas.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    // Resetta tutto quando alzi il dito
+    keys.ArrowUp = false;
+    keys.ArrowDown = false;
+    keys.ArrowLeft = false;
+    keys.ArrowRight = false;
+    keys.Space = false;
+}, { passive: false });
+
+function handleTouch(e) {
+    e.preventDefault(); // Evita lo scroll della pagina
+    const touch = e.touches[0];
+    const rect = canvas.getBoundingClientRect();
+
+    // Calcoliamo dove hai toccato rispetto alla grandezza visiva del canvas
+    const touchX = touch.clientX - rect.left;
+    const touchY = touch.clientY - rect.top;
+
+    // Normalizziamo le coordinate (0-1)
+    const relX = touchX / rect.width;
+    const relY = touchY / rect.height;
+
+    // Resetta tasti
+    keys.ArrowUp = false;
+    keys.ArrowDown = false;
+    keys.ArrowLeft = false;
+    keys.ArrowRight = false;
+    keys.Space = false;
+
+    // Logica "D-Pad Invisibile"
+    // Immagina una X sullo schermo.
+
+    if (relX < 0.33) { // Terzo Sinistro
+        keys.ArrowLeft = true;
+    } else if (relX > 0.66) { // Terzo Destro
+        keys.ArrowRight = true;
+    }
+
+    if (relY < 0.33) { // Terzo Alto
+        keys.ArrowUp = true;
+    } else if (relY > 0.66) { // Terzo Basso
+        keys.ArrowDown = true;
+    }
+
+    // Tocco al centro = SPAZIO (Debug Pulse)
+    if (relX >= 0.33 && relX <= 0.66 && relY >= 0.33 && relY <= 0.66) {
+        keys.Space = true;
+        // Nota: Space deve resettarsi subito nel loop, come hai già fatto
+    }
+}
 
 // --- AUDIO SYSTEM (The Synthesizer) ---
 // Creiamo il contesto audio (il nostro "mixer" virtuale)
@@ -155,6 +216,16 @@ function playSound(type) {
         gainNode.gain.linearRampToValueAtTime(0.01, now + 0.1);
         osc.start(now);
         osc.stop(now + 0.1);
+    } else if (type == 'dash') {
+        // Dash sound - Pitch up
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1200, now);
+        osc.frequency.exponentialRampToValueAtTime(100, now + 0.1); // Pitch up
+        gainNode.gain.setValueAtTime(0.2, now);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+        osc.start(now);
+        osc.stop(now + 0.1);
+
     }
 }
 
@@ -200,6 +271,47 @@ function update() {
     if (keys.KeyA) player.x -= player.speed;
     if (keys.KeyS) player.y += player.speed;
     if (keys.KeyD) player.x += player.speed;
+
+    // --- DASH LOGIC ---
+    // 1. Cooldown Management
+    if (player.dashCooldown > 0) player.dashCooldown--;
+
+    // 2. Attivazione Dash (Input)
+    if (keys.ShiftLeft && !player.isDashing && player.dashCooldown <= 0) {
+        console.log("DASH!");
+        player.isDashing = true;
+        player.dashTimer = 20; // Il dash dura 20 frame (circa 0.16 secondi)
+        player.dashCooldown = 60; // 1 secondo di ricarica
+        player.speed = 10; // VELOCITÀ ESPLOSIVA
+        shakeAmount = 5; // Piccolo tremolio per dare impatto
+        playSound('dash'); // Usiamo il suono dello sparo come feedback
+    }
+
+    // 3. Gestione dello Stato Dash (Mentre scatto)
+    if (player.isDashing) {
+        // Aggiungi un "fantasma" alla posizione attuale
+        dashTrails.push({
+            x: player.x,
+            y: player.y,
+            alpha: 0.8 // Opacità iniziale
+        });
+
+        // Conto alla rovescia durata
+        player.dashTimer--;
+        if (player.dashTimer <= 0) {
+            player.isDashing = false;
+            player.speed = 2; // Return to normal speed
+        }
+    }
+
+    // 4. Gestione delle Scie (Update visuale)
+    // Riduciamo l'alpha di ogni fantasma finché non sparisce
+    for (let i = dashTrails.length - 1; i >= 0; i--) {
+        dashTrails[i].alpha -= 0.1; // Svanisce velocemente
+        if (dashTrails[i].alpha <= 0) {
+            dashTrails.splice(i, 1); // Rimuovi fantasma morto
+        }
+    }
 
     // Boundary Checks (Keep player inside screen)
     // Simple logic: if < 0, set to 0. If > width, set to width.
@@ -362,7 +474,18 @@ function draw() {
         if (shakeAmount < 0.5) shakeAmount = 0;
     }
 
-    drawGlitchRect(player.x, player.y, player.size, player.size, player.color);
+    // --- DRAW DASH TRAILS (Ghosts) ---
+    dashTrails.forEach(trail => {
+        ctx.globalAlpha = trail.alpha; // Usa l'opacità del fantasma
+        ctx.fillStyle = player.color;  // Colore verde hacker
+        ctx.fillRect(trail.x, trail.y, player.size, player.size);
+    });
+    ctx.globalAlpha = 1.0; // Reset opacità!
+
+    // --- DRAW PLAYER ---
+    // Se sta scattando, disegnalo BIANCO (Invulnerabile), altrimenti VERDE
+    let currentPlayerColor = player.isDashing ? '#ffffff' : player.color;
+    drawGlitchRect(player.x, player.y, player.size, player.size, currentPlayerColor);
 
     // --- DRAW PARTICLES ---
     particles.forEach(p => {
@@ -372,7 +495,7 @@ function draw() {
     });
     ctx.globalAlpha = 1.0;
 
-    // --- DRAW GLITCHES CON RGB SPLIT ---
+    // --- DRAW GLITCHES WITH RGB SPLIT ---
     glitches.forEach(glitch => {
         const shakeX = (Math.random() - 0.5) * speed;
         const shakeY = (Math.random() - 0.5) * speed;
@@ -381,7 +504,7 @@ function draw() {
         let color = glitch.colors[Math.floor(Math.random() * glitch.colors.length)];
         drawGlitchRect(glitch.x + shakeX, glitch.y + shakeY, glitch.size, glitch.size, color);
     });
-    // 2. LOGICA STATI
+    // 2. STATES LOGIC
     if (gameState === 'START') {
         drawStartScreen();
     }
@@ -568,8 +691,12 @@ function checkCollisions() {
             player.x < glitch.x + glitch.size &&
             player.x + player.size > glitch.x &&
             player.y < glitch.y + glitch.size &&
-            player.y + player.size > glitch.y
+            player.y + player.size > glitch.y &&
+            player.speed == 2
         ) {
+            if (player.isDashing) {
+                return; // Ignora la collisione
+            }
             gameOver();
             // // score = 0; // Azzera punteggio (o togli punti)
             // player.x = canvas.width / 2;

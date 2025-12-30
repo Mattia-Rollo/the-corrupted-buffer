@@ -53,5 +53,5 @@ Il mondo è infestato da "Glitch" (rumore visivo). Il tuo compito è debuggare l
 - [ ] Aggiungere la vita al player.
 - [ ] Deployment: Metteremo il gioco su GitHub Pages o Netlify.
 - [ ] Obiettivo: Incollare il link in chat e dire "Provatelo voi adesso". La chat impazzirà.
-- [ ] Mobile Support: Aggiungeremo i controlli touch (perché il 50% di chi cliccherà il link sarà da telefono).
-- [ ] Dash Ability: (Se avanza tempo) Uno scatto veloce per schivare i nemici all'ultimo secondo.
+- [x] Mobile Support: Aggiungeremo i controlli touch (perché il 50% di chi cliccherà il link sarà da telefono).
+- [x] Dash Ability: (Se avanza tempo) Uno scatto veloce per schivare i nemici all'ultimo secondo.
