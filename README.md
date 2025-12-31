@@ -51,7 +51,8 @@ Il mondo è infestato da "Glitch" (rumore visivo). Il tuo compito è debuggare l
 - [ ] Creazione Mappa/Livello (tramite array JS).
 - [ ] Condizione di Vittoria e Polish finale.
 - [ ] Aggiungere la vita al player.
-- [ ] Deployment: Metteremo il gioco su GitHub Pages o Netlify.
+- [x] Deployment: Metteremo il gioco su GitHub Pages o Netlify.
 - [ ] Obiettivo: Incollare il link in chat e dire "Provatelo voi adesso". La chat impazzirà.
-- [x] Mobile Support: Aggiungeremo i controlli touch (perché il 50% di chi cliccherà il link sarà da telefono).
+- [ ] Mobile Support: Aggiungeremo i controlli touch (perché il 50% di chi cliccherà il link sarà da telefono).
 - [x] Dash Ability: (Se avanza tempo) Uno scatto veloce per schivare i nemici all'ultimo secondo.
+- [x] Capped at 60 FPS: (Se avanza tempo) Limitiamo il gioco a 60 FPS per evitare problemi di performance.
