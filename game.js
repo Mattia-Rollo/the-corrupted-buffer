@@ -14,10 +14,14 @@ canvas.style.height = '100%';
 canvas.style.imageRendering = 'pixelated';
 canvas.style.objectFit = 'contain';
 
+document.body.style.backgroundColor = '#000';
+document.body.style.margin = '0';
+document.body.style.overflow = 'hidden';
+
 // --- GAME STATE ---
 // Possibili valori: 'START', 'PLAYING', 'GAMEOVER'
 let gameState = 'START';
-let speed = 2; // speed of goal and glitches
+let speed = 1; // speed of goal and glitches
 let shakeAmount = 0;
 
 // --- PLAYER ---   
@@ -25,7 +29,7 @@ const player = {
     x: canvas.width / 2,
     y: canvas.height / 2,
     size: 10, // A bit bigger than 1 pixel to be visible
-    speed: 2,
+    speed: 3,
     color: '#00ff00', // Hacker Green
     isDashing: false,
     dashCooldown: 0
@@ -115,58 +119,81 @@ window.addEventListener('keyup', (e) => {
     }
 });
 
-canvas.addEventListener('touchstart', handleTouch, { passive: false });
-canvas.addEventListener('touchend', (e) => {
-    e.preventDefault();
-    // Resetta tutto quando alzi il dito
-    keys.ArrowUp = false;
-    keys.ArrowDown = false;
-    keys.ArrowLeft = false;
-    keys.ArrowRight = false;
-    keys.Space = false;
-}, { passive: false });
 
-function handleTouch(e) {
-    e.preventDefault(); // Evita lo scroll della pagina
-    const touch = e.touches[0];
-    const rect = canvas.getBoundingClientRect();
+// --- MOBILE TOUCH CONTROLS ---
 
-    // Calcoliamo dove hai toccato rispetto alla grandezza visiva del canvas
-    const touchX = touch.clientX - rect.left;
-    const touchY = touch.clientY - rect.top;
+// Gestione Touch Start (Inizio gioco + Movimento)
+// canvas.addEventListener('touchstart', (e) => {
+//     e.preventDefault(); // Niente scroll
 
-    // Normalizziamo le coordinate (0-1)
-    const relX = touchX / rect.width;
-    const relY = touchY / rect.height;
+//     // 1. GESTIONE MENU (Tap to Start)
+//     // Se non stiamo giocando, qualsiasi tocco fa partire il gioco!
+//     if (gameState !== 'PLAYING') {
+//         if (gameState === 'START') {
+//             gameState = 'PLAYING';
+//             playSound('collect');
+//             initGame();
+//         } else if (gameState === 'GAMEOVER') {
+//             resetGame();
+//             playSound('collect');
+//             initGame();
+//         }
+//         return; // Fermati qui, non calcolare il movimento
+//     }
 
-    // Resetta tasti
-    keys.ArrowUp = false;
-    keys.ArrowDown = false;
-    keys.ArrowLeft = false;
-    keys.ArrowRight = false;
-    keys.Space = false;
+//     // 2. GESTIONE GIOCO (Chiama la logica di movimento)
+//     handleTouch(e);
+// }, { passive: false });
 
-    // Logica "D-Pad Invisibile"
-    // Immagina una X sullo schermo.
+// // Gestione Touch Move (Per trascinare il dito)
+// canvas.addEventListener('touchmove', (e) => {
+//     e.preventDefault();
+//     if (gameState === 'PLAYING') handleTouch(e);
+// }, { passive: false });
 
-    if (relX < 0.33) { // Terzo Sinistro
-        keys.ArrowLeft = true;
-    } else if (relX > 0.66) { // Terzo Destro
-        keys.ArrowRight = true;
-    }
+// // Gestione Touch End (Ferma tutto)
+// canvas.addEventListener('touchend', (e) => {
+//     e.preventDefault();
+//     keys.ArrowUp = false;
+//     keys.ArrowDown = false;
+//     keys.ArrowLeft = false;
+//     keys.ArrowRight = false;
+//     keys.Space = false;
+//     keys.ShiftLeft = false; // Ferma anche il dash
+// }, { passive: false });
 
-    if (relY < 0.33) { // Terzo Alto
-        keys.ArrowUp = true;
-    } else if (relY > 0.66) { // Terzo Basso
-        keys.ArrowDown = true;
-    }
+// function handleTouch(e) {
+//     const touch = e.touches[0];
+//     const rect = canvas.getBoundingClientRect();
 
-    // Tocco al centro = SPAZIO (Debug Pulse)
-    if (relX >= 0.33 && relX <= 0.66 && relY >= 0.33 && relY <= 0.66) {
-        keys.Space = true;
-        // Nota: Space deve resettarsi subito nel loop, come hai già fatto
-    }
-}
+//     // Coordinate relative
+//     const touchX = touch.clientX - rect.left;
+//     const touchY = touch.clientY - rect.top;
+//     const relX = touchX / rect.width;
+//     const relY = touchY / rect.height;
+
+//     // Reset
+//     keys.ArrowUp = false;
+//     keys.ArrowDown = false;
+//     keys.ArrowLeft = false;
+//     keys.ArrowRight = false;
+//     keys.Space = false;
+//     keys.ShiftLeft = false;
+
+//     // D-PAD LOGIC
+//     if (relX < 0.33) keys.ArrowLeft = true;
+//     else if (relX > 0.66) keys.ArrowRight = true;
+
+//     if (relY < 0.33) keys.ArrowUp = true;
+//     else if (relY > 0.66) keys.ArrowDown = true;
+
+//     // CENTRO SCHERMO = PANIC BUTTON (Sparo + Dash)
+//     // Su mobile è difficile premere due cose insieme, quindi il centro fa tutto!
+//     if (relX >= 0.33 && relX <= 0.66 && relY >= 0.33 && relY <= 0.66) {
+//         keys.Space = true;      // Spara impulso
+//         keys.ShiftLeft = true;  // Attiva Dash
+//     }
+// }
 
 // --- AUDIO SYSTEM (The Synthesizer) ---
 // Creiamo il contesto audio (il nostro "mixer" virtuale)
@@ -497,13 +524,22 @@ function draw() {
 
     // --- DRAW GLITCHES WITH RGB SPLIT ---
     glitches.forEach(glitch => {
-        const shakeX = (Math.random() - 0.5) * speed;
-        const shakeY = (Math.random() - 0.5) * speed;
-        // Usiamo la nuova funzione anche qui!
-        // Nota: prendiamo il primo colore dell'array o quello corrente
-        let color = glitch.colors[Math.floor(Math.random() * glitch.colors.length)];
+        // 1. Scegliamo un colore a caso dalla sua lista (ogni frame cambia)
+        // Usiamo colori saturi per massimo contrasto
+        const currentColors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#00ffff', '#ff00ff'];
+        let color = currentColors[Math.floor(Math.random() * currentColors.length)];
+
+        // 2. VIBRAZIONE AGGRESSIVA (Jitter)
+        // Anche se siamo a 60fps, spostare l'oggetto di 3-4 pixel a caso
+        // crea un effetto "motion blur" che lo fa sembrare velocissimo.
+        const jitterAmount = 5;
+        const shakeX = (Math.random() - 0.5) * jitterAmount;
+        const shakeY = (Math.random() - 0.5) * jitterAmount;
+
+        // Disegniamo il glitch spostato, ma la sua vera posizione (x,y) rimane fissa per le collisioni
         drawGlitchRect(glitch.x + shakeX, glitch.y + shakeY, glitch.size, glitch.size, color);
     });
+
     // 2. STATES LOGIC
     if (gameState === 'START') {
         drawStartScreen();
@@ -571,17 +607,26 @@ function draw() {
 }
 
 function drawGlitchRect(x, y, w, h, color) {
-    // 1. Canale Rosso (Spostato a sinistra)
-    ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
-    // Più il giocatore è veloce o più shake c'è, più i colori si separano
-    let offset = 2 + shakeAmount;
-    ctx.fillRect(x - offset, y, w, h);
+    // Calcoliamo se dobbiamo mostrare l'effetto glitch
+    // 1. Se lo shake è alto (esplosioni, dash, danni)
+    // 2. Oppure una piccola chance casuale (0.05 = 5% delle volte) per sfarfallio
+    const isGlitching = shakeAmount > 2 || Math.random() < 0.05;
 
-    // 2. Canale Blu (Spostato a destra)
-    ctx.fillStyle = 'rgba(0, 0, 255, 0.5)';
-    ctx.fillRect(x + offset, y, w, h);
+    if (isGlitching) {
+        // --- EFFETTO RGB SPLIT ATTIVO ---
 
-    // 3. Canale Principale (Il colore vero, al centro)
+        // 1. Canale Rosso 
+        ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
+        // L'offset dipende dallo shake, ma ha un minimo di 2px
+        let offset = 2 + (shakeAmount * 0.5);
+        ctx.fillRect(x - offset, y, w, h);
+
+        // 2. Canale Blu 
+        ctx.fillStyle = 'rgba(0, 0, 255, 0.5)';
+        ctx.fillRect(x + offset, y, w, h);
+    }
+
+    // 3. Canale Principale (Disegnato SEMPRE)
     ctx.fillStyle = color;
     ctx.fillRect(x, y, w, h);
 }
@@ -597,7 +642,7 @@ function spawnGlitches(amount) {
             vx: (Math.random() - 0.5) * speed,
             vy: (Math.random() - 0.5) * speed,
             size: 12,
-            colors: ['#ff0000', '#00ff00', '#0000ff']
+            colors: ['#00ffff', '#ff00ff', '#ffff00', '#ffffff', '#ff0000']
         };
         glitches.push(glitch);
     }
@@ -626,7 +671,7 @@ function triggerDebugPower() {
     console.log("DEBUG PULSE ACTIVATED!");
 
     playSound('shoot');
-    shakeAmount = 30;
+    shakeAmount = 10;
 
     // Attiviamo l'animazione
     pulseEffect.active = true;
@@ -732,7 +777,15 @@ function drawStartScreen() {
 
     ctx.fillStyle = '#aaa';
     ctx.font = '12px "Courier New", monospace';
-    ctx.fillText('Use ARROWS to move / SPACE to debug', canvas.width / 2, canvas.height / 2 + 50);
+    ctx.fillText('Use ARROWS to move / SPACE to debug / SHIFT to dash', canvas.width / 2, canvas.height / 2 + 50);
+
+    // Touch controls
+    ctx.font = '12px "Courier New", monospace';
+    ctx.fillText('Touch to move / Hold to dash', canvas.width / 2, canvas.height / 2 + 70);
+
+    // Goal
+    ctx.font = '12px "Courier New", monospace';
+    ctx.fillText('Find the goal to purify it', canvas.width / 2, canvas.height / 2 + 110);
 }
 
 function drawGameOverScreen() {
@@ -780,12 +833,26 @@ function initGame() {
     ctx.textAlign = 'start';
 }
 
-// --- GAME LOOP ---
-function loop() {
-    update(); // 1. Calculate logic
-    draw();   // 2. Render graphics
-    requestAnimationFrame(loop); // 3. Repeat ASAP - render every frame based on the monitor refresh rate
-}
+// --- GAME LOOP (FPS CAPPED) ---
+let lastTime = 0;
+const FPS = 60;
+const frameDelay = 1000 / FPS; // 16.6ms per frame
 
+function loop(timestamp) {
+    // Calcola quanto tempo è passato dall'ultimo frame
+    const deltaTime = timestamp - lastTime;
+
+    if (deltaTime >= frameDelay) {
+
+        // Se è passato abbastanza tempo, aggiorniamo il gioco
+        update();
+        draw();
+        // Resettiamo il timer aggiustandolo per non perdere precisione
+        lastTime = timestamp - (deltaTime % frameDelay);
+    }
+
+    // Richiedi il prossimo frame (ma lo eseguiremo solo se è passato il tempo giusto)
+    requestAnimationFrame(loop);
+}
 // Start the engine
 loop();
