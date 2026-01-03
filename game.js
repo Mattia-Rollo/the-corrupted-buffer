@@ -21,7 +21,7 @@ document.body.style.overflow = 'hidden';
 // --- GAME STATE ---
 // Possibili valori: 'START', 'PLAYING', 'GAMEOVER'
 let gameState = 'START';
-let speed = 1; // speed of goal and glitches
+let speed = 3; // speed of goal and glitches
 let shakeAmount = 0;
 
 // --- PLAYER ---   
@@ -29,7 +29,7 @@ const player = {
     x: canvas.width / 2,
     y: canvas.height / 2,
     size: 10, // A bit bigger than 1 pixel to be visible
-    speed: 3,
+    speed: 5,
     color: '#00ff00', // Hacker Green
     isDashing: false,
     dashCooldown: 0
@@ -307,7 +307,7 @@ function update() {
     if (keys.ShiftLeft && !player.isDashing && player.dashCooldown <= 0) {
         console.log("DASH!");
         player.isDashing = true;
-        player.dashTimer = 20; // Il dash dura 20 frame (circa 0.16 secondi)
+        player.dashTimer = 60; // Il dash dura 20 frame (circa 0.16 secondi)
         player.dashCooldown = 60; // 1 secondo di ricarica
         player.speed = 10; // VELOCITÀ ESPLOSIVA
         shakeAmount = 5; // Piccolo tremolio per dare impatto
@@ -327,7 +327,7 @@ function update() {
         player.dashTimer--;
         if (player.dashTimer <= 0) {
             player.isDashing = false;
-            player.speed = 2; // Return to normal speed
+            player.speed = 5; // Return to normal speed
         }
     }
 
@@ -413,20 +413,25 @@ function update() {
             shakeAmount = 10;
             score += 64;
             debugCooldown -= 10;
-            if (score % 64 === 0) {
-                spawnGlitches(50);
+            if (score == 64) {
+                ammountOfGlitches *= 2;
+                spawnGlitches(ammountOfGlitches);
                 playSound('hit');
-            } else if (score % 128 === 0) {
-                spawnGlitches(100);
+            } else if (score > 128) {
+                ammountOfGlitches *= 2;
+                spawnGlitches(ammountOfGlitches);
                 playSound('hit');
-            } else if (score % 256 === 0) {
-                spawnGlitches(200);
+            } else if (score > 256) {
+                ammountOfGlitches *= 2;
+                spawnGlitches(ammountOfGlitches);
                 playSound('hit');
-            } else if (score % 512 === 0) {
-                spawnGlitches(400);
+            } else if (score > 512) {
+                ammountOfGlitches *= 2;
+                spawnGlitches(ammountOfGlitches);
                 playSound('hit');
-            } else if (score % 1024 === 0) {
-                spawnGlitches(1100);
+            } else if (score > 1024) {
+                ammountOfGlitches *= 2;
+                spawnGlitches(ammountOfGlitches);
                 playSound('hit');
             }
             console.log("Data recovered! Score:", score);
@@ -455,7 +460,7 @@ function update() {
     }
 
     // console.log("GLITCHES: ", glitches.length);
-    if (glitches.length > 10000) gameOver();
+    if (glitches.length > 5000) gameOver();
 }
 
 function gameOver() {
@@ -737,7 +742,8 @@ function checkCollisions() {
             player.x + player.size > glitch.x &&
             player.y < glitch.y + glitch.size &&
             player.y + player.size > glitch.y &&
-            player.speed == 2
+            // se il player non si muove non viene colpito
+            (player.vx != 0 || player.vy != 0)
         ) {
             if (player.isDashing) {
                 return; // Ignora la collisione
